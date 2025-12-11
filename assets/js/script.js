@@ -6,8 +6,12 @@ const storageKeys = {
 // Настройки OAuth: вставьте свои client_id
 const OAUTH_CONFIG = {
   githubClientId: "Ov23licLGRGeChpkP29C",
+  // Для GitHub device flow client_secret не обязателен, но GitHub может его требовать для некоторых приложений.
+  // Если авторизация не проходит, создайте secret в настройках OAuth App и вставьте сюда.
+  githubClientSecret: "REPLACE_WITH_GITHUB_CLIENT_SECRET",
   vkClientId: "REPLACE_WITH_VK_CLIENT_ID",
-  redirectUri: `${window.location.origin}${window.location.pathname}`,
+  // Фиксируем redirect на путь GitHub Pages, чтобы совпадало с настройкой OAuth App.
+  redirectUri: "https://vlapugb.github.io/business_card_website/",
 };
 
 const demoProfiles = {
@@ -81,6 +85,9 @@ async function requestGitHubDeviceCode() {
     },
     body: new URLSearchParams({
       client_id: OAUTH_CONFIG.githubClientId,
+      ...(OAUTH_CONFIG.githubClientSecret && !OAUTH_CONFIG.githubClientSecret.startsWith("REPLACE")
+        ? { client_secret: OAUTH_CONFIG.githubClientSecret }
+        : {}),
       scope: "read:user",
     }),
   });
@@ -104,14 +111,17 @@ async function pollGitHubToken(deviceData) {
         method: "POST",
         headers: {
           Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          client_id: OAUTH_CONFIG.githubClientId,
-          device_code: deviceData.device_code,
-          grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-        }),
-      });
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: OAUTH_CONFIG.githubClientId,
+        device_code: deviceData.device_code,
+        grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+        ...(OAUTH_CONFIG.githubClientSecret && !OAUTH_CONFIG.githubClientSecret.startsWith("REPLACE")
+          ? { client_secret: OAUTH_CONFIG.githubClientSecret }
+          : {}),
+      }),
+    });
     } catch (err) {
       setAuthNote("GitHub: ошибка сети, пробуем снова…");
       return setTimeout(() => attempt(currentInterval), currentInterval);
@@ -127,6 +137,11 @@ async function pollGitHubToken(deviceData) {
     }
     if (data.error === "access_denied" || data.error === "expired_token") {
       setAuthNote("GitHub: авторизация отменена или истекла.", true);
+      return;
+    }
+    if (data.error) {
+      const reason = data.error_description || data.error;
+      setAuthNote(`GitHub: ошибка авторизации (${reason}).`, true);
       return;
     }
 
