@@ -283,6 +283,16 @@ h3 {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.auth__note {
+  margin: 4px 0 10px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.auth__note--alert {
+  color: var(--danger);
+}
+
 .comment__form {
   display: grid;
   gap: 10px;
@@ -335,6 +345,10 @@ textarea:focus {
   font-weight: 700;
   color: #03121d;
   border: 1px solid var(--border);
+}
+
+.avatar--img {
+  object-fit: cover;
 }
 
 .comment__provider {

@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-NND7T8GJ');</script>
+  <!-- End Google Tag Manager -->
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Владимир Пуговкин — системный разработчик</title>
@@ -8,22 +16,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/styles.css">
-
-  <!-- Google Tag Manager -->
-  <script>
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-XXXXXXX'); /* TODO: замените на свой ID */
-  </script>
-  <!-- End Google Tag Manager -->
 </head>
 <body>
   <!-- Google Tag Manager (noscript) -->
-  <noscript>
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX" height="0" width="0" style="display:none;visibility:hidden"></iframe>
-  </noscript>
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NND7T8GJ"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
   <div class="page">
@@ -204,13 +201,15 @@
       <section class="panel auth" id="auth">
         <div class="panel__header">
           <p class="eyebrow">Вход</p>
-          <h2>Авторизация через соц. сети</h2>
+          <h2>Авторизация через GitHub/VK</h2>
         </div>
-        <p class="muted">Демо-авторизация без сервера: выберите социальную сеть, чтобы активировать форму комментариев.</p>
+        <p class="muted">Настройте client_id для GitHub/VK и авторизуйтесь. При необходимости есть демо-вход без OAuth.</p>
         <div class="auth__buttons">
-          <button class="button button--solid" data-provider="github">Войти через GitHub</button>
-          <button class="button button--ghost" data-provider="vk">Войти через VK</button>
+          <button class="button button--solid" data-auth="github-device">GitHub (OAuth device flow)</button>
+          <button class="button button--ghost" data-auth="vk-implicit">VK (OAuth implicit)</button>
+          <button class="button button--ghost" data-auth="demo">Демо-вход (локально)</button>
         </div>
+        <div class="auth__note" id="authNote"></div>
         <div class="auth__status" id="authStatus">
           <p class="muted">Вы пока не авторизованы.</p>
         </div>
@@ -243,17 +242,16 @@
 
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
-    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-    m[i].l=1*new Date();
-    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-    (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-    ym(12341324, "init", {
-      clickmap:true,
-      trackLinks:true,
-      accurateTrackBounce:true
-    }); /* TODO: замените 00000000 на свой счётчик */
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105796523', 'ym');
+
+    ym(105796523, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
   </script>
-  <noscript><div><img src="https://mc.yandex.ru/watch/12341234" style="position:absolute; left:-9999px;" alt=""/></div></noscript>
+  <noscript><div><img src="https://mc.yandex.ru/watch/105796523" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
   <!-- /Yandex.Metrika counter -->
 </body>
 </html>
