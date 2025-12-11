@@ -26,8 +26,9 @@
 - GitHub OAuth (device flow):
   1. Создайте OAuth App на https://github.com/settings/developers → New OAuth App.
   2. Callback URL: `https://<username>.github.io/<repo>/` (корень страницы).
-3. Скопируйте `Client ID` в `OAUTH_CONFIG.githubClientId`. Если GitHub требует client secret — сгенерируйте и вставьте в `githubClientSecret` (в `assets/js/script.js`).
+  3. Скопируйте `Client ID` в `OAUTH_CONFIG.githubClientId`. Если GitHub требует client secret — сгенерируйте и вставьте в `githubClientSecret` (в `assets/js/script.js`).
   4. На сайте жмите «GitHub (OAuth device flow)», откройте ссылку, введите выданный код, дождитесь авторизации.
+- GitHub CORS: login/oauth эндпоинты не отдают CORS, поэтому в коде используется публичный прокси `https://cors.isomorphic-git.org/`. Для продакшена лучше заменить на свой прокси/серверлесс и хранить secret там.
 - VK OAuth (implicit):
   1. Создайте Standalone-приложение VK.
   2. Redirect URI: `https://<username>.github.io/<repo>/`.

@@ -14,6 +14,10 @@ const OAUTH_CONFIG = {
   redirectUri: "https://vlapugb.github.io/business_card_website/",
 };
 
+// GitHub login/oauth endpoints не отдают CORS. Используем публичный CORS-прокси для фронтенд-доступа.
+// Для продакшена лучше поднять свой прокси/серверлесс и спрятать secret там.
+const GITHUB_PROXY = "https://cors.isomorphic-git.org/";
+
 const demoProfiles = {
   github: {
     name: "vlapugb",
@@ -77,7 +81,7 @@ async function startGitHubDeviceFlow() {
 }
 
 async function requestGitHubDeviceCode() {
-  const res = await fetch("https://github.com/login/device/code", {
+  const res = await fetch(`${GITHUB_PROXY}https://github.com/login/device/code`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -107,12 +111,12 @@ async function pollGitHubToken(deviceData) {
 
     let tokenResponse;
     try {
-      tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
+      tokenResponse = await fetch(`${GITHUB_PROXY}https://github.com/login/oauth/access_token`, {
         method: "POST",
         headers: {
           Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       body: new URLSearchParams({
         client_id: OAUTH_CONFIG.githubClientId,
         device_code: deviceData.device_code,
