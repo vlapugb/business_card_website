@@ -16,7 +16,10 @@ const OAUTH_CONFIG = {
 
 // GitHub login/oauth endpoints не отдают CORS. Используем публичный CORS-прокси для фронтенд-доступа.
 // Для продакшена лучше поднять свой прокси/серверлесс и спрятать secret там.
-const GITHUB_PROXY = "https://cors.isomorphic-git.org/";
+const GITHUB_PROXIES = [
+  "https://cors.isomorphic-git.org/",
+  "https://corsproxy.io/?",
+];
 
 const demoProfiles = {
   github: {
@@ -76,27 +79,27 @@ async function startGitHubDeviceFlow() {
     pollGitHubToken(deviceData);
   } catch (error) {
     console.error(error);
-    setAuthNote("Не удалось начать GitHub OAuth. Проверьте client_id и попробуйте снова.", true);
+    const reason = error?.message
+      ? `GitHub OAuth: ${error.message}`
+      : "Не удалось начать GitHub OAuth. Проверьте client_id и попробуйте снова.";
+    setAuthNote(reason, true);
   }
 }
 
 async function requestGitHubDeviceCode() {
-  const res = await fetch(`${GITHUB_PROXY}https://github.com/login/device/code`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: OAUTH_CONFIG.githubClientId,
-      ...(OAUTH_CONFIG.githubClientSecret && !OAUTH_CONFIG.githubClientSecret.startsWith("REPLACE")
-        ? { client_secret: OAUTH_CONFIG.githubClientSecret }
-        : {}),
-      scope: "read:user",
-    }),
+  const payload = new URLSearchParams({
+    client_id: OAUTH_CONFIG.githubClientId,
+    ...(OAUTH_CONFIG.githubClientSecret && !OAUTH_CONFIG.githubClientSecret.startsWith("REPLACE")
+      ? { client_secret: OAUTH_CONFIG.githubClientSecret }
+      : {}),
+    scope: "read:user",
   });
-  if (!res.ok) throw new Error("Failed to request device code");
-  return res.json();
+  const res = await fetchViaProxy("https://github.com/login/device/code", payload);
+  if (!res || res.error) {
+    const reason = res?.error_description || res?.error || "GitHub вернул пустой ответ на device flow.";
+    throw new Error(reason);
+  }
+  return res;
 }
 
 async function pollGitHubToken(deviceData) {
@@ -109,29 +112,22 @@ async function pollGitHubToken(deviceData) {
       return;
     }
 
-    let tokenResponse;
+    let tokenData;
     try {
-      tokenResponse = await fetch(`${GITHUB_PROXY}https://github.com/login/oauth/access_token`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      body: new URLSearchParams({
+      tokenData = await fetchViaProxy("https://github.com/login/oauth/access_token", new URLSearchParams({
         client_id: OAUTH_CONFIG.githubClientId,
         device_code: deviceData.device_code,
         grant_type: "urn:ietf:params:oauth:grant-type:device_code",
         ...(OAUTH_CONFIG.githubClientSecret && !OAUTH_CONFIG.githubClientSecret.startsWith("REPLACE")
           ? { client_secret: OAUTH_CONFIG.githubClientSecret }
           : {}),
-      }),
-    });
+      }), true);
     } catch (err) {
       setAuthNote("GitHub: ошибка сети, пробуем снова…");
       return setTimeout(() => attempt(currentInterval), currentInterval);
     }
 
-    const data = await tokenResponse.json();
+    const data = tokenData;
 
     if (data.error === "authorization_pending") {
       return setTimeout(() => attempt(currentInterval), currentInterval);
@@ -159,6 +155,49 @@ async function pollGitHubToken(deviceData) {
   };
 
   setTimeout(() => attempt(intervalMs), intervalMs);
+}
+
+async function fetchViaProxy(url, bodyParams, expectJson = true) {
+  let lastError;
+  for (const proxy of GITHUB_PROXIES) {
+    const proxiedUrl = proxy.endsWith("?") ? `${proxy}${encodeURIComponent(url)}` : `${proxy}${url}`;
+    try {
+      const res = await fetch(proxiedUrl, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: bodyParams,
+      });
+      if (!res.ok) {
+        lastError = new Error(`Proxy ${proxy} returned ${res.status}`);
+        continue;
+      }
+      if (!expectJson) {
+        return res;
+      }
+      return await parseOauthResponse(res);
+    } catch (err) {
+      lastError = err;
+      continue;
+    }
+  }
+  throw lastError || new Error("All proxies failed");
+}
+
+async function parseOauthResponse(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (jsonErr) {
+    try {
+      const params = new URLSearchParams(text);
+      return Object.fromEntries(params.entries());
+    } catch (parseErr) {
+      throw jsonErr;
+    }
+  }
 }
 
 async function saveGitHubUser(accessToken) {
