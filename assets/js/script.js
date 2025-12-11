@@ -68,17 +68,21 @@ function bindAuthButtons() {
 async function startGitHubDeviceFlow() {
   if (!OAUTH_CONFIG.githubClientId || OAUTH_CONFIG.githubClientId.startsWith("REPLACE")) {
     setAuthNote("Укажите GitHub client_id в OAUTH_CONFIG.githubClientId.", true);
+    renderAuthCode("");
     return;
   }
 
   setAuthNote("GitHub: запрашиваем код авторизации…");
+  renderAuthCode("");
   try {
     const deviceData = await requestGitHubDeviceCode();
-    setAuthNote(`GitHub: введите код ${deviceData.user_code} на ${deviceData.verification_uri}`, false, deviceData.user_code);
+    renderAuthCode(deviceData.user_code, deviceData.verification_uri);
+    setAuthNote("GitHub: введите код ниже и нажмите Continue на GitHub.");
     window.open(deviceData.verification_uri, "_blank");
     pollGitHubToken(deviceData);
   } catch (error) {
     console.error(error);
+    renderAuthCode("");
     const reason = error?.message
       ? `GitHub OAuth: ${error.message}`
       : "Не удалось начать GitHub OAuth. Проверьте client_id и попробуйте снова.";
@@ -109,6 +113,7 @@ async function pollGitHubToken(deviceData) {
   const attempt = async (currentInterval) => {
     if (Date.now() > deadline) {
       setAuthNote("GitHub: код устарел, запустите авторизацию заново.", true);
+      renderAuthCode("");
       return;
     }
 
@@ -137,21 +142,25 @@ async function pollGitHubToken(deviceData) {
     }
     if (data.error === "access_denied" || data.error === "expired_token") {
       setAuthNote("GitHub: авторизация отменена или истекла.", true);
+      renderAuthCode("");
       return;
     }
     if (data.error) {
       const reason = data.error_description || data.error;
       setAuthNote(`GitHub: ошибка авторизации (${reason}).`, true);
+      renderAuthCode("");
       return;
     }
 
     if (data.access_token) {
       await saveGitHubUser(data.access_token);
       setAuthNote("GitHub: авторизация успешна.");
+      renderAuthCode("");
       return;
     }
 
     setAuthNote("GitHub: неизвестная ошибка авторизации.", true);
+    renderAuthCode("");
   };
 
   setTimeout(() => attempt(intervalMs), intervalMs);
@@ -230,6 +239,7 @@ function startVkImplicitFlow() {
     return;
   }
 
+  renderAuthCode("");
   const url = new URL("https://oauth.vk.com/authorize");
   url.searchParams.set("client_id", OAUTH_CONFIG.vkClientId);
   url.searchParams.set("display", "page");
@@ -249,6 +259,7 @@ async function handleVkRedirect() {
   if (!token || !userId) return;
 
   try {
+    renderAuthCode("");
     const user = await fetchVkUser(token, userId);
     persistUser(user);
     setAuthNote("VK: авторизация успешна.");
@@ -298,6 +309,7 @@ function handleDemoLogin() {
     accent: profile.accent,
   };
   persistUser(user);
+  renderAuthCode("");
   setAuthNote("Демо-вход активирован (локально).");
 }
 
@@ -313,6 +325,7 @@ function handleLogout() {
   state.user = null;
   localStorage.removeItem(storageKeys.user);
   setAuthNote("Вы вышли.");
+  renderAuthCode("");
   renderAuthStatus();
   renderFormState();
 }
@@ -361,11 +374,47 @@ function renderAuthStatus() {
   container.appendChild(wrapper);
 }
 
-function setAuthNote(text, alert = false, code = "") {
+function setAuthNote(text, alert = false) {
   const el = document.getElementById("authNote");
   if (!el) return;
-  el.textContent = code ? `${text} (код: ${code})` : text;
+  el.textContent = text;
   el.className = alert ? "auth__note auth__note--alert" : "auth__note";
+}
+
+function renderAuthCode(code = "", verificationUri = "https://github.com/login/device") {
+  const card = document.getElementById("authCodeCard");
+  const valueEl = document.getElementById("authCodeValue");
+  const linkEl = document.getElementById("authCodeLink");
+  const copyBtn = document.getElementById("authCodeCopy");
+  if (!card || !valueEl) return;
+
+  if (!code) {
+    card.hidden = true;
+    card.dataset.code = "";
+    return;
+  }
+
+  card.hidden = false;
+  card.dataset.code = code;
+  valueEl.textContent = code;
+  if (linkEl) {
+    linkEl.href = verificationUri || "https://github.com/login/device";
+  }
+  if (copyBtn && !copyBtn.dataset.bound) {
+    copyBtn.dataset.bound = "true";
+    copyBtn.addEventListener("click", async () => {
+      const currentCode = card.dataset.code || valueEl.textContent;
+      if (!currentCode) return;
+      try {
+        await navigator.clipboard.writeText(currentCode);
+        copyBtn.textContent = "Скопировано";
+        setTimeout(() => (copyBtn.textContent = "Скопировать"), 1800);
+      } catch (err) {
+        copyBtn.textContent = "Не скопировано";
+        setTimeout(() => (copyBtn.textContent = "Скопировать"), 1800);
+      }
+    });
+  }
 }
 
 // ---------------- Comments ----------------

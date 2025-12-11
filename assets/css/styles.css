@@ -293,6 +293,52 @@ h3 {
   color: var(--danger);
 }
 
+.auth__code {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(98, 244, 166, 0.06);
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px 0;
+}
+
+.auth__code-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth__code-label {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.auth__code-value {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 22px;
+  letter-spacing: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.auth__code-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+}
+
+.auth__code-hint {
+  color: var(--muted);
+}
+
 .comment__form {
   display: grid;
   gap: 10px;
@@ -381,6 +427,12 @@ textarea:focus {
 
 .button--ghost {
   background: rgba(255, 255, 255, 0.06);
+}
+
+.button--sm {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 10px;
 }
 
 .button:hover {
