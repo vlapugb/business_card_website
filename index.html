@@ -24,6 +24,47 @@
   <!-- End Google Tag Manager (noscript) -->
 
   <div class="page">
+    <section class="auth-bar" id="auth">
+      <div class="auth-bar__left">
+        <div class="auth__buttons">
+          <button class="button button--ghost" data-auth="github-device">
+            <span class="auth-icon auth-icon--github" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M12 .5a12 12 0 00-3.79 23.4c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61-.55-1.41-1.35-1.78-1.35-1.78-1.1-.75.08-.74.08-.74 1.22.09 1.86 1.27 1.86 1.27 1.08 1.85 2.83 1.32 3.52 1.01.11-.79.42-1.32.76-1.63-2.67-.3-5.48-1.34-5.48-5.97 0-1.32.47-2.39 1.24-3.23-.13-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 016 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.65.25 2.87.12 3.17.77.84 1.23 1.91 1.23 3.23 0 4.64-2.81 5.66-5.5 5.96.43.36.81 1.08.81 2.17v3.22c0 .32.21.69.82.58A12 12 0 0012 .5z"></path></svg>
+            </span>
+            GitHub
+          </button>
+          <button class="button button--ghost" data-auth="google-implicit">
+            <span class="auth-icon auth-icon--google" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M21.6 12.23c0-.72-.06-1.25-.19-1.8H12v3.27h5.5c-.11.82-.72 2.05-2.07 2.87l-.02.11 3 2.33.21.02c1.9-1.74 3-4.3 3-7.07z" fill="#4285F4"/><path d="M12 22c2.73 0 5.02-.9 6.69-2.46l-3.19-2.47c-.86.55-2.01.93-3.5.93-2.67 0-4.93-1.74-5.74-4.15l-.1.01-3.12 2.41-.04.1C3.85 19.98 7.64 22 12 22z" fill="#34A853"/><path d="M6.26 13.85a6.1 6.1 0 010-3.87l-.01-.13-3.15-2.45-.1.05a9.97 9.97 0 000 9.86l3.26-2.46z" fill="#FBBC05"/><path d="M12 5.88c1.9 0 3.18.82 3.9 1.51l2.85-2.78C17.02 2.97 14.73 2 12 2 7.64 2 3.85 4.02 1.94 7.24l3.26 2.46C5.82 7.62 7.9 5.88 12 5.88z" fill="#EA4335"/><path d="M1 1h22v22H1z" fill="none"/></svg>
+            </span>
+            Google
+          </button>
+          <button class="button button--ghost" data-auth="yandex-implicit">
+            <span class="auth-icon auth-icon--yandex" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.35 3.5h-2.7L7.2 11.87l2.13 8.63h2.79l2.18-8.63-2.95-8.37h2.95v-1H8.6v1h2.37l2.19 6.37-1.9 7.21-1.7-7.21 2.79-6.37z" fill="currentColor"/></svg>
+            </span>
+            Yandex
+          </button>
+          <button class="button button--ghost" data-auth="demo">Демо</button>
+        </div>
+        <div class="auth__code" id="authCodeCard" hidden>
+          <div class="auth__code-row">
+            <p class="auth__code-label">Код для GitHub</p>
+            <button type="button" class="button button--ghost button--sm" id="authCodeCopy">Скопировать</button>
+          </div>
+          <div class="auth__code-value" id="authCodeValue">XXXX-XXXX</div>
+          <div class="auth__code-actions">
+            <a id="authCodeLink" href="https://github.com/login/device" target="_blank" rel="noreferrer">github.com/login/device</a>
+            <span class="auth__code-hint">Откройте ссылку, вставьте код и нажмите Continue.</span>
+          </div>
+        </div>
+        <div class="auth__note" id="authNote"></div>
+      </div>
+      <div class="auth__status" id="authStatus">
+        <p class="muted">Вы пока не авторизованы.</p>
+      </div>
+    </section>
+
     <header class="hero">
       <div class="hero__badge">Системный и сетевой разработчик</div>
       <h1>Владимир Пуговкин</h1>
@@ -195,35 +236,6 @@
               <p class="muted">A Proposal of Gradient Coil Configuration for Low-Field MRI — DOI: 10.1007/s00723-024-01682-8</p>
             </li>
           </ul>
-        </div>
-      </section>
-
-      <section class="panel auth" id="auth">
-        <div class="panel__header">
-          <p class="eyebrow">Вход</p>
-          <h2>Авторизация через GitHub/Google/Yandex</h2>
-        </div>
-        <p class="muted">Настройте client_id для GitHub/Google/Yandex и авторизуйтесь. При необходимости есть демо-вход без OAuth.</p>
-        <div class="auth__buttons">
-          <button class="button button--solid" data-auth="github-device">GitHub (OAuth device flow)</button>
-          <button class="button button--ghost" data-auth="google-implicit">Google (OAuth implicit)</button>
-          <button class="button button--ghost" data-auth="yandex-implicit">Yandex (OAuth implicit)</button>
-          <button class="button button--ghost" data-auth="demo">Демо-вход (локально)</button>
-        </div>
-        <div class="auth__note" id="authNote"></div>
-        <div class="auth__code" id="authCodeCard" hidden>
-          <div class="auth__code-row">
-            <p class="auth__code-label">Код для GitHub</p>
-            <button type="button" class="button button--ghost button--sm" id="authCodeCopy">Скопировать</button>
-          </div>
-          <div class="auth__code-value" id="authCodeValue">XXXX-XXXX</div>
-          <div class="auth__code-actions">
-            <a id="authCodeLink" href="https://github.com/login/device" target="_blank" rel="noreferrer">github.com/login/device</a>
-            <span class="auth__code-hint">Откройте ссылку, вставьте код и нажмите Continue.</span>
-          </div>
-        </div>
-        <div class="auth__status" id="authStatus">
-          <p class="muted">Вы пока не авторизованы.</p>
         </div>
       </section>
 
