@@ -486,6 +486,10 @@ textarea:focus {
   align-self: flex-start;
 }
 
+.comments__embed {
+  margin-top: 8px;
+}
+
 .comment__list {
   display: grid;
   gap: 10px;
