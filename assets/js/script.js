@@ -9,6 +9,7 @@ const OAUTH_CONFIG = {
   // GitHub secret в фронт не кладём; device flow работает только с client_id.
   githubClientSecret: "",
   googleClientId: "815683495320-jipk985qjf1q5sg0aqosrpk4lgo24gna.apps.googleusercontent.com",
+  yandexClientId: "4910aed257e9419f98d24ff02b73c143",
   // Фиксируем redirect на путь GitHub Pages, чтобы совпадало с настройкой OAuth App.
   redirectUri: "https://vlapugb.github.io/business_card_website/",
 };
@@ -33,6 +34,12 @@ const demoProfiles = {
     link: "https://profiles.google.com/",
     accent: "#fbbc05",
   },
+  yandex: {
+    name: "vlapugb",
+    handle: "@yandex/vlapugb",
+    link: "https://passport.yandex.ru/",
+    accent: "#ffcc00",
+  },
 };
 
 const state = {
@@ -42,6 +49,7 @@ const state = {
 
 document.addEventListener("DOMContentLoaded", () => {
   handleGoogleRedirect();
+  handleYandexRedirect();
   bindAuthButtons();
   renderAuthStatus();
   renderComments();
@@ -56,6 +64,8 @@ function bindAuthButtons() {
         startGitHubDeviceFlow();
       } else if (mode === "google-implicit") {
         startGoogleImplicitFlow();
+      } else if (mode === "yandex-implicit") {
+        startYandexImplicitFlow();
       } else if (mode === "demo") {
         handleDemoLogin();
       }
@@ -289,6 +299,63 @@ async function fetchGoogleUser(token) {
   };
 }
 
+// ---------------- Yandex OAuth (Implicit Flow) ----------------
+function startYandexImplicitFlow() {
+  if (!OAUTH_CONFIG.yandexClientId || OAUTH_CONFIG.yandexClientId.startsWith("REPLACE")) {
+    setAuthNote("Укажите Yandex client_id в OAUTH_CONFIG.yandexClientId.", true);
+    return;
+  }
+
+  renderAuthCode("");
+  const url = new URL("https://oauth.yandex.ru/authorize");
+  url.searchParams.set("client_id", OAUTH_CONFIG.yandexClientId);
+  url.searchParams.set("redirect_uri", OAUTH_CONFIG.redirectUri);
+  url.searchParams.set("response_type", "token");
+  url.searchParams.set("scope", "login:info login:email");
+  url.searchParams.set("force_confirm", "yes");
+  window.location.href = url.toString();
+}
+
+async function handleYandexRedirect() {
+  if (!window.location.hash.includes("access_token")) return;
+
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const token = params.get("access_token");
+  if (!token) return;
+
+  try {
+    renderAuthCode("");
+    const user = await fetchYandexUser(token);
+    persistUser(user);
+    setAuthNote("Yandex: авторизация успешна.");
+  } catch (err) {
+    console.error(err);
+    setAuthNote("Не удалось получить данные Yandex.", true);
+  } finally {
+    history.replaceState(null, document.title, window.location.pathname + window.location.search);
+  }
+}
+
+async function fetchYandexUser(token) {
+  const res = await fetch("https://login.yandex.ru/info?format=json", {
+    headers: {
+      Authorization: `OAuth ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Yandex request failed");
+  const data = await res.json();
+
+  return {
+    name: data.real_name || data.display_name || data.login || "Yandex User",
+    provider: "yandex-oauth",
+    handle: data.default_email ? data.default_email : data.id ? `id${data.id}` : data.login || "yandex-user",
+    link: "https://passport.yandex.ru",
+    accent: "#ffcc00",
+    avatar: data.is_avatar_empty ? null : data.default_avatar_id ? `https://avatars.yandex.net/get-yapic/${data.default_avatar_id}/islands-200` : null,
+    token,
+  };
+}
+
 // ---------------- Demo (fallback) ----------------
 function handleDemoLogin() {
   const name = prompt("Демо-вход: укажите имя", "Гость");
@@ -420,7 +487,7 @@ function bindCommentForm() {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!state.user) {
-      alert("Сначала войдите через GitHub или Google.");
+      alert("Сначала войдите через GitHub, Google или Yandex.");
       return;
     }
 
@@ -510,6 +577,8 @@ function providerLabel(provider) {
       return "GitHub OAuth";
     case "google-oauth":
       return "Google OAuth";
+    case "yandex-oauth":
+      return "Yandex OAuth";
     case "demo":
       return "Demo";
     default:

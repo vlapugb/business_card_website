@@ -1,6 +1,6 @@
 ## Сайт-визитка
 
-Статическая страница `index.html` с данными из резюме `pugovkin.pdf`. Внутри подключены GTM, Яндекс.Метрика, демо-вход через GitHub/Google и локальные комментарии.
+Статическая страница `index.html` с данными из резюме `pugovkin.pdf`. Внутри подключены GTM, Яндекс.Метрика, демо-вход через GitHub/Google/Yandex и локальные комментарии.
 
 ### Как посмотреть локально
 1. Откройте `index.html` в браузере напрямую, либо
@@ -18,11 +18,11 @@
 - Яндекс.Метрика подключена с ID `105796523`; при необходимости замените на свой.
 
 ### Социальный вход и комментарии
-- Кнопки «Войти через GitHub/Google» включают форму комментариев. Авторизация демо-режима работает на клиенте и хранит данные в `localStorage` вашего браузера.
+- Кнопки «Войти через GitHub/Google/Yandex» включают форму комментариев. Авторизация демо-режима работает на клиенте и хранит данные в `localStorage` вашего браузера.
 - Комментарии сохраняются локально, без сервера.
 
 ### Настройка реальной авторизации
-- Укажите client_id в `assets/js/script.js` → `OAUTH_CONFIG.githubClientId` и `OAUTH_CONFIG.googleClientId`.
+- Укажите client_id в `assets/js/script.js` → `OAUTH_CONFIG.githubClientId`, `OAUTH_CONFIG.googleClientId`, `OAUTH_CONFIG.yandexClientId`.
 - GitHub OAuth (device flow):
   1. Создайте OAuth App на https://github.com/settings/developers → New OAuth App.
   2. Callback URL: `https://<username>.github.io/<repo>/` (корень страницы).
@@ -34,6 +34,11 @@
   2. Authorized redirect URI: `https://<username>.github.io/<repo>/`.
   3. Скопируйте `Client ID` в `OAUTH_CONFIG.googleClientId`.
   4. На сайте жмите «Google (OAuth implicit)» → после логина вернёт на страницу и включит форму комментариев.
+- Yandex OAuth (implicit):
+  1. Создайте OAuth-приложение в Yandex (https://oauth.yandex.ru/client/new).
+  2. Redirect URI: `https://<username>.github.io/<repo>/`.
+  3. Скопируйте `client_id` в `OAUTH_CONFIG.yandexClientId`.
+  4. На сайте жмите «Yandex (OAuth implicit)» → после логина вернёт на страницу и включит форму комментариев.
 - Демо-вход оставлен как локальный fallback без серверной авторизации.
 
 ### Деплой на GitHub Pages (Actions)
