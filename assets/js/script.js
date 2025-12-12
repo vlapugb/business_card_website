@@ -10,9 +10,10 @@ const OAUTH_CONFIG = {
   githubClientSecret: "",
   googleClientId: "815683495320-jipk985qjf1q5sg0aqosrpk4lgo24gna.apps.googleusercontent.com",
   yandexClientId: "4910aed257e9419f98d24ff02b73c143",
-  // Фиксируем redirect на путь GitHub Pages, чтобы совпадало с настройкой OAuth App.
-  redirectUri: "https://vlapugb.github.io/business_card_website/",
+  // Redirect ведёт на страницу авторизации (auth.html), домен должен совпадать с настройками OAuth App.
+  redirectUri: "https://vlapugb.github.io/business_card_website/auth.html",
 };
+const APP_HOME = "https://vlapugb.github.io/business_card_website/";
 
 // GitHub login/oauth endpoints не отдают CORS. Используем публичный CORS-прокси для фронтенд-доступа.
 // Для продакшена лучше поднять свой прокси/серверлесс и спрятать secret там.
@@ -52,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
   handleYandexRedirect();
   bindAuthButtons();
   renderAuthStatus();
+  renderTopAuthButton();
   renderComments();
   bindCommentForm();
 });
@@ -81,17 +83,17 @@ async function startGitHubDeviceFlow() {
     return;
   }
 
-  setAuthNote("GitHub: запрашиваем код авторизации…");
-  renderAuthCode("");
-  try {
-    const deviceData = await requestGitHubDeviceCode();
-    renderAuthCode(deviceData.user_code, deviceData.verification_uri);
-    setAuthNote("GitHub: введите код ниже и нажмите Continue на GitHub.");
-    window.open(deviceData.verification_uri, "_blank");
-    pollGitHubToken(deviceData);
-  } catch (error) {
-    console.error(error);
+    setAuthNote("GitHub: запрашиваем код авторизации…");
     renderAuthCode("");
+    try {
+      const deviceData = await requestGitHubDeviceCode();
+      renderAuthCode(deviceData.user_code, deviceData.verification_uri);
+      setAuthNote("GitHub: код скопирован, вставьте его на github.com/login/device и нажмите Continue.");
+      window.open(deviceData.verification_uri, "_blank");
+      pollGitHubToken(deviceData);
+    } catch (error) {
+      console.error(error);
+      renderAuthCode("");
     const reason = error?.message
       ? `GitHub OAuth: ${error.message}`
       : "Не удалось начать GitHub OAuth. Проверьте client_id и попробуйте снова.";
@@ -165,6 +167,7 @@ async function pollGitHubToken(deviceData) {
       await saveGitHubUser(data.access_token);
       setAuthNote("GitHub: авторизация успешна.");
       renderAuthCode("");
+      redirectHomeAfterAuth();
       return;
     }
 
@@ -271,6 +274,7 @@ async function handleGoogleRedirect() {
     const user = await fetchGoogleUser(token);
     persistUser(user);
     setAuthNote("Google: авторизация успешна.");
+    redirectHomeAfterAuth();
   } catch (err) {
     console.error(err);
     setAuthNote("Не удалось получить данные Google.", true);
@@ -328,6 +332,7 @@ async function handleYandexRedirect() {
     const user = await fetchYandexUser(token);
     persistUser(user);
     setAuthNote("Yandex: авторизация успешна.");
+    redirectHomeAfterAuth();
   } catch (err) {
     console.error(err);
     setAuthNote("Не удалось получить данные Yandex.", true);
@@ -379,6 +384,7 @@ function persistUser(user) {
   localStorage.setItem(storageKeys.user, JSON.stringify(user));
   renderAuthStatus();
   renderFormState();
+  renderTopAuthButton();
 }
 
 function handleLogout() {
@@ -388,6 +394,7 @@ function handleLogout() {
   renderAuthCode("");
   renderAuthStatus();
   renderFormState();
+  renderTopAuthButton();
 }
 
 function renderAuthStatus() {
@@ -441,6 +448,18 @@ function setAuthNote(text, alert = false) {
   el.className = alert ? "auth__note auth__note--alert" : "auth__note";
 }
 
+function renderTopAuthButton() {
+  const btn = document.getElementById("authTopButton");
+  if (!btn) return;
+  if (state.user) {
+    btn.textContent = "Logout";
+    btn.onclick = () => handleLogout();
+  } else {
+    btn.textContent = "Авторизация";
+    btn.onclick = () => (window.location.href = OAUTH_CONFIG.redirectUri);
+  }
+}
+
 function renderAuthCode(code = "", verificationUri = "https://github.com/login/device") {
   const card = document.getElementById("authCodeCard");
   const valueEl = document.getElementById("authCodeValue");
@@ -459,6 +478,10 @@ function renderAuthCode(code = "", verificationUri = "https://github.com/login/d
   valueEl.textContent = code;
   if (linkEl) {
     linkEl.href = verificationUri || "https://github.com/login/device";
+  }
+  // Пытаемся скопировать код автоматически, чтобы не вводить вручную.
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).catch(() => {});
   }
   if (copyBtn && !copyBtn.dataset.bound) {
     copyBtn.dataset.bound = "true";
@@ -598,6 +621,12 @@ function timeAgo(timestamp) {
   if (hours < 24) return `${hours} ч назад`;
   const days = Math.floor(hours / 24);
   return `${days} дн назад`;
+}
+
+function redirectHomeAfterAuth() {
+  setTimeout(() => {
+    window.location.href = APP_HOME;
+  }, 800);
 }
 
 function loadUser() {
