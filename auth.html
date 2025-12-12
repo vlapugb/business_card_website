@@ -30,15 +30,10 @@
         </div>
 
         <div class="auth__note" id="authNote"></div>
-        <div class="auth__code" id="authCodeCard" hidden>
-          <div class="auth__code-row">
-            <p class="auth__code-label">Код для GitHub</p>
-            <button type="button" class="button button--ghost button--sm" id="authCodeCopy">Скопировать</button>
-          </div>
-          <div class="auth__code-value" id="authCodeValue">XXXX-XXXX</div>
-          <div class="auth__code-actions">
-            <a id="authCodeLink" href="https://github.com/login/device" target="_blank" rel="noreferrer">github.com/login/device</a>
-            <span class="auth__code-hint">Откройте ссылку, вставьте код и нажмите Continue.</span>
+        <div class="auth__hidden-code" id="authCodeNotice" hidden>
+          <p id="authCodeText">Код сгенерирован и скопирован. Откройте страницу GitHub и вставьте его.</p>
+          <div class="auth__hidden-actions">
+            <button type="button" class="button button--solid" id="authCodeButton">Открыть github.com/login/device</button>
           </div>
         </div>
 

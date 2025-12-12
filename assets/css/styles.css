@@ -360,6 +360,20 @@ h3 {
   text-align: center;
 }
 
+.auth__hidden-code {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  margin: 8px auto 12px auto;
+  max-width: 520px;
+}
+
+.auth__hidden-actions {
+  display: flex;
+  justify-content: center;
+}
+
 .auth__note--alert {
   color: var(--danger);
 }

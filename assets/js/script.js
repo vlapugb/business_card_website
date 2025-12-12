@@ -461,42 +461,23 @@ function renderTopAuthButton() {
 }
 
 function renderAuthCode(code = "", verificationUri = "https://github.com/login/device") {
-  const card = document.getElementById("authCodeCard");
-  const valueEl = document.getElementById("authCodeValue");
-  const linkEl = document.getElementById("authCodeLink");
-  const copyBtn = document.getElementById("authCodeCopy");
-  if (!card || !valueEl) return;
+  const notice = document.getElementById("authCodeNotice");
+  const textEl = document.getElementById("authCodeText");
+  const btn = document.getElementById("authCodeButton");
+  if (!notice || !textEl || !btn) return;
 
   if (!code) {
-    card.hidden = true;
-    card.dataset.code = "";
+    notice.hidden = true;
     return;
   }
 
-  card.hidden = false;
-  card.dataset.code = code;
-  valueEl.textContent = code;
-  if (linkEl) {
-    linkEl.href = verificationUri || "https://github.com/login/device";
-  }
-  // Пытаемся скопировать код автоматически, чтобы не вводить вручную.
+  notice.hidden = false;
+  textEl.textContent = "Код сгенерирован и скопирован. Откройте страницу GitHub и нажмите Continue.";
+  const targetUrl = verificationUri || "https://github.com/login/device";
+  btn.onclick = () => window.open(targetUrl, "_blank");
+
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(code).catch(() => {});
-  }
-  if (copyBtn && !copyBtn.dataset.bound) {
-    copyBtn.dataset.bound = "true";
-    copyBtn.addEventListener("click", async () => {
-      const currentCode = card.dataset.code || valueEl.textContent;
-      if (!currentCode) return;
-      try {
-        await navigator.clipboard.writeText(currentCode);
-        copyBtn.textContent = "Скопировано";
-        setTimeout(() => (copyBtn.textContent = "Скопировать"), 1800);
-      } catch (err) {
-        copyBtn.textContent = "Не скопировано";
-        setTimeout(() => (copyBtn.textContent = "Скопировать"), 1800);
-      }
-    });
   }
 }
 
