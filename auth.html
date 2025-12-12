@@ -16,19 +16,19 @@
       <button class="button button--ghost button--solidless" id="authTopButton">Авторизация</button>
     </section>
 
-    <main class="layout">
-      <section class="panel auth auth--center" id="authPanel">
-        <div class="panel__header">
-          <p class="eyebrow">Вход</p>
-          <h2>Авторизация через GitHub/Google/Yandex</h2>
+    <main class="layout auth-page">
+      <section class="panel auth auth--center auth-card" id="authPanel">
+        <p class="eyebrow">Вход</p>
+        <h1 class="auth__title">Авторизация через GitHub / Google / Yandex</h1>
+        <p class="muted auth__subtitle">Выберите способ авторизации. Для GitHub device flow код покажем и скопируем автоматически.</p>
+
+        <div class="auth__buttons auth__buttons--stack">
+          <button class="button button--solid auth__button" data-auth="github-device">GitHub (OAuth device flow)</button>
+          <button class="button button--ghost auth__button" data-auth="google-implicit">Google (OAuth implicit)</button>
+          <button class="button button--ghost auth__button" data-auth="yandex-implicit">Yandex (OAuth implicit)</button>
+          <button class="button button--ghost auth__button" data-auth="demo">Демо-вход (локально)</button>
         </div>
-        <p class="muted">Нажмите нужный способ авторизации. Для GitHub device flow код появится автоматически.</p>
-        <div class="auth__buttons">
-          <button class="button button--solid" data-auth="github-device">GitHub (OAuth device flow)</button>
-          <button class="button button--ghost" data-auth="google-implicit">Google (OAuth implicit)</button>
-          <button class="button button--ghost" data-auth="yandex-implicit">Yandex (OAuth implicit)</button>
-          <button class="button button--ghost" data-auth="demo">Демо-вход (локально)</button>
-        </div>
+
         <div class="auth__note" id="authNote"></div>
         <div class="auth__code" id="authCodeCard" hidden>
           <div class="auth__code-row">
@@ -41,6 +41,7 @@
             <span class="auth__code-hint">Откройте ссылку, вставьте код и нажмите Continue.</span>
           </div>
         </div>
+
         <div class="auth__status" id="authStatus">
           <p class="muted">Вы пока не авторизованы.</p>
         </div>

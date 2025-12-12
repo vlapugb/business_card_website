@@ -276,6 +276,21 @@ h3 {
   margin-bottom: 10px;
 }
 
+.auth__buttons--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.auth__button {
+  width: 100%;
+  justify-content: center;
+}
+
+.auth__buttons--stack .button {
+  width: 100%;
+  justify-content: center;
+}
+
 .auth-bar {
   display: flex;
   gap: 12px;
@@ -306,14 +321,36 @@ h3 {
   margin: 0 auto;
 }
 
+.auth-page {
+  min-height: calc(100vh - 120px);
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-card {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.auth__title {
+  margin: 4px 0 10px 0;
+  font-size: clamp(24px, 4vw, 32px);
+}
+
+.auth__subtitle {
+  margin: 0 0 16px 0;
+}
+
 .auth__status {
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px dashed var(--border);
   background: rgba(255, 255, 255, 0.02);
   min-width: 240px;
-  max-width: 320px;
-  margin-left: auto;
+  max-width: 520px;
+  margin: 8px auto 0 auto;
 }
 
 .auth__note {
