@@ -1,6 +1,6 @@
 const storageKeys = {
   user: "vc_user",
-  comments: "vc_comments",
+  commentsIssue: "vc_comments_issue",
 };
 
 // Настройки OAuth: вставьте свои client_id
@@ -21,6 +21,9 @@ const GITHUB_PROXIES = [
   "https://cors.isomorphic-git.org/",
   "https://corsproxy.io/?",
 ];
+
+const COMMENTS_REPO = "vlapugb/business_card_website";
+const COMMENTS_THREAD_TITLE = "Комментарии к бизнес-карте";
 
 const demoProfiles = {
   github: {
@@ -45,7 +48,13 @@ const demoProfiles = {
 
 const state = {
   user: loadUser(),
-  comments: loadComments(),
+  comments: [],
+};
+
+const commentsState = {
+  issueNumber: loadIssueNumber(),
+  loading: false,
+  error: "",
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -54,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindAuthButtons();
   renderAuthStatus();
   renderTopAuthButton();
-  renderComments();
+  fetchAndRenderComments();
   bindCommentForm();
 });
 
@@ -107,7 +116,7 @@ async function requestGitHubDeviceCode() {
     ...(OAUTH_CONFIG.githubClientSecret && !OAUTH_CONFIG.githubClientSecret.startsWith("REPLACE")
       ? { client_secret: OAUTH_CONFIG.githubClientSecret }
       : {}),
-    scope: "read:user",
+    scope: "read:user public_repo",
   });
   const res = await fetchViaProxy("https://github.com/login/device/code", payload);
   if (!res || res.error) {
@@ -385,6 +394,9 @@ function persistUser(user) {
   renderAuthStatus();
   renderFormState();
   renderTopAuthButton();
+  if (document.getElementById("commentList")) {
+    fetchAndRenderComments();
+  }
 }
 
 function handleLogout() {
@@ -482,48 +494,105 @@ function renderAuthCode(code = "", verificationUri = "https://github.com/login/d
 }
 
 // ---------------- Comments ----------------
+async function fetchAndRenderComments() {
+  const list = document.getElementById("commentList");
+  if (!list) return;
+
+  commentsState.loading = true;
+  commentsState.error = "";
+  renderComments();
+
+  try {
+    const issueNumber = await ensureCommentsIssue(isGitHubUser());
+    if (!issueNumber) {
+      commentsState.error = "Авторизуйтесь через GitHub, чтобы создать общий поток комментариев.";
+      state.comments = [];
+      return;
+    }
+
+    const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues/${issueNumber}/comments`, {
+      headers: githubHeaders(),
+    });
+    if (!res.ok) {
+      if (res.status === 404) {
+        commentsState.issueNumber = null;
+        saveIssueNumber(null);
+      }
+      throw new Error("Не удалось загрузить комментарии из GitHub Issues.");
+    }
+    const data = await res.json();
+    state.comments = data.map(mapGithubComment);
+    commentsState.issueNumber = issueNumber;
+    saveIssueNumber(issueNumber);
+  } catch (err) {
+    console.error(err);
+    commentsState.error = err?.message || "Не удалось загрузить комментарии.";
+  } finally {
+    commentsState.loading = false;
+    renderComments();
+    renderFormState();
+  }
+}
+
 function bindCommentForm() {
   const form = document.getElementById("commentForm");
   if (!form) return;
 
   renderFormState();
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!state.user) {
-      alert("Сначала войдите через GitHub, Google или Yandex.");
-      return;
-    }
-
     const textarea = document.getElementById("commentInput");
     const message = textarea.value.trim();
     if (!message) return;
+    if (!isGitHubUser()) {
+      alert("Комментарии публикуются в GitHub Issues — войдите через GitHub (device flow).");
+      return;
+    }
 
-    const newComment = {
-      id: Date.now(),
-      message,
-      user: state.user,
-      createdAt: new Date().toISOString(),
-    };
+    const submit = form.querySelector("button[type='submit']");
+    textarea.disabled = true;
+    submit.disabled = true;
 
-    state.comments.unshift(newComment);
-    localStorage.setItem(storageKeys.comments, JSON.stringify(state.comments));
-    textarea.value = "";
-    renderComments();
+    try {
+      const issueNumber = await ensureCommentsIssue(true);
+      await postCommentToGitHub(issueNumber, message);
+      textarea.value = "";
+      await fetchAndRenderComments();
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || "Не удалось отправить комментарий.");
+    } finally {
+      textarea.disabled = false;
+      submit.disabled = false;
+      renderFormState();
+    }
   });
 }
 
 function renderFormState() {
   const textarea = document.getElementById("commentInput");
   const submit = document.querySelector("#commentForm button[type='submit']");
+  const hint = document.getElementById("commentsHint");
   if (!textarea || !submit) return;
 
-  const disabled = !state.user;
+  const disabled = !isGitHubUser() || commentsState.loading;
   textarea.disabled = disabled;
   submit.disabled = disabled;
-  textarea.placeholder = disabled
-    ? "Чтобы оставить комментарий, авторизуйтесь через соц. сеть выше."
-    : "Что думаете о проектах или опыте?";
+
+  if (!isGitHubUser()) {
+    textarea.placeholder = "Чтобы оставить комментарий в GitHub Issues, авторизуйтесь через GitHub.";
+    if (hint) hint.textContent = "Для глобальных комментариев нужен вход через GitHub (device flow).";
+    return;
+  }
+
+  if (commentsState.loading) {
+    textarea.placeholder = "Загружаем поток комментариев из GitHub…";
+  } else if (!commentsState.issueNumber && commentsState.error) {
+    textarea.placeholder = "Создадим issue после первого комментария.";
+  } else {
+    textarea.placeholder = "Что думаете о проектах или опыте?";
+  }
 }
 
 function renderComments() {
@@ -531,6 +600,22 @@ function renderComments() {
   if (!list) return;
 
   list.innerHTML = "";
+
+  if (commentsState.loading) {
+    const loading = document.createElement("p");
+    loading.className = "muted";
+    loading.textContent = "Загружаем комментарии…";
+    list.appendChild(loading);
+    return;
+  }
+
+  if (commentsState.error) {
+    const errorEl = document.createElement("p");
+    errorEl.className = "muted";
+    errorEl.textContent = commentsState.error;
+    list.appendChild(errorEl);
+    return;
+  }
 
   if (!state.comments.length) {
     const empty = document.createElement("p");
@@ -585,6 +670,8 @@ function providerLabel(provider) {
       return "Yandex OAuth";
     case "demo":
       return "Demo";
+    case "github-issue":
+      return "GitHub";
     default:
       return "Соц. сеть";
   }
@@ -604,6 +691,99 @@ function timeAgo(timestamp) {
   return `${days} дн назад`;
 }
 
+async function ensureCommentsIssue(allowCreate = false) {
+  if (commentsState.issueNumber) return commentsState.issueNumber;
+
+  const existing = await findCommentsIssue();
+  if (existing) {
+    commentsState.issueNumber = existing;
+    saveIssueNumber(existing);
+    return existing;
+  }
+
+  if (!allowCreate || !isGitHubUser()) {
+    return null;
+  }
+
+  const created = await createCommentsIssue();
+  commentsState.issueNumber = created;
+  saveIssueNumber(created);
+  return created;
+}
+
+async function findCommentsIssue() {
+  if (commentsState.issueNumber) return commentsState.issueNumber;
+
+  const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues?state=all&per_page=100`, {
+    headers: githubHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error("Не удалось получить список issues для комментариев.");
+  }
+  const data = await res.json();
+  const existing = data.find((issue) => issue.title === COMMENTS_THREAD_TITLE);
+  return existing ? existing.number : null;
+}
+
+async function createCommentsIssue() {
+  const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues`, {
+    method: "POST",
+    headers: { ...githubHeaders(true), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: COMMENTS_THREAD_TITLE,
+      body: "Общий тред для комментариев к странице-визитке.",
+    }),
+  });
+  if (!res.ok) {
+    throw new Error("Не удалось создать issue для комментариев (проверьте scope public_repo).");
+  }
+  const data = await res.json();
+  return data.number;
+}
+
+async function postCommentToGitHub(issueNumber, message) {
+  const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues/${issueNumber}/comments`, {
+    method: "POST",
+    headers: { ...githubHeaders(true), "Content-Type": "application/json" },
+    body: JSON.stringify({ body: message }),
+  });
+  if (!res.ok) {
+    throw new Error("GitHub не принял комментарий. Проверьте авторизацию и scope public_repo.");
+  }
+  const data = await res.json();
+  return mapGithubComment(data);
+}
+
+function mapGithubComment(comment) {
+  return {
+    id: comment.id,
+    message: comment.body,
+    user: {
+      name: comment.user.login,
+      provider: "github-issue",
+      handle: `@${comment.user.login}`,
+      link: comment.user.html_url,
+      accent: "#6bb8ff",
+      avatar: comment.user.avatar_url,
+    },
+    createdAt: comment.created_at,
+  };
+}
+
+function githubHeaders(requireAuth = false) {
+  const headers = { Accept: "application/vnd.github+json" };
+  if (isGitHubUser()) {
+    headers.Authorization = `Bearer ${state.user.token}`;
+  } else if (requireAuth) {
+    throw new Error("Требуется вход через GitHub для работы с комментариями.");
+  }
+  return headers;
+}
+
+function isGitHubUser() {
+  return Boolean(state.user && state.user.provider === "github-oauth" && state.user.token);
+}
+
 function redirectHomeAfterAuth() {
   setTimeout(() => {
     window.location.href = APP_HOME;
@@ -620,12 +800,24 @@ function loadUser() {
   }
 }
 
-function loadComments() {
+function loadIssueNumber() {
   try {
-    const raw = localStorage.getItem(storageKeys.comments);
-    return raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem(storageKeys.commentsIssue);
+    const parsed = raw ? Number(raw) : null;
+    return Number.isFinite(parsed) ? parsed : null;
   } catch (e) {
-    console.warn("Не удалось загрузить комментарии", e);
-    return [];
+    return null;
+  }
+}
+
+function saveIssueNumber(issueNumber) {
+  try {
+    if (!issueNumber) {
+      localStorage.removeItem(storageKeys.commentsIssue);
+      return;
+    }
+    localStorage.setItem(storageKeys.commentsIssue, String(issueNumber));
+  } catch (e) {
+    console.warn("Не удалось сохранить номер issue", e);
   }
 }

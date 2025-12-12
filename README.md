@@ -1,6 +1,6 @@
 ## Сайт-визитка
 
-Статическая страница `index.html` с данными из резюме `pugovkin.pdf`. Внутри подключены GTM, Яндекс.Метрика, демо-вход через GitHub/Google/Yandex и локальные комментарии.
+Статическая страница `index.html` с данными из резюме `pugovkin.pdf`. Внутри подключены GTM, Яндекс.Метрика, демо-вход через GitHub/Google/Yandex и глобальные комментарии в GitHub Issues.
 
 ### Как посмотреть локально
 1. Откройте `index.html` в браузере напрямую, либо
@@ -9,7 +9,7 @@
 ### Структура
 - `index.html` — страница.
 - `assets/css/styles.css` — стили.
-- `assets/js/script.js` — логика демо-авторизации и комментариев (localStorage).
+- `assets/js/script.js` — логика демо-авторизации и комментариев (GitHub Issues).
 - `.github/workflows/deploy.yml` — автодеплой на GitHub Pages.
 - `.nojekyll` — отключение Jekyll на Pages.
 
@@ -18,8 +18,9 @@
 - Яндекс.Метрика подключена с ID `105796523`; при необходимости замените на свой.
 
 ### Социальный вход и комментарии
-- Кнопки «Войти через GitHub/Google/Yandex» включают форму комментариев. Авторизация демо-режима работает на клиенте и хранит данные в `localStorage` вашего браузера.
-- Комментарии сохраняются локально, без сервера.
+- Комментарии публикуются в GitHub Issues репозитория (`assets/js/script.js` → `COMMENTS_REPO`). Нужен вход через GitHub (device flow), scope `read:user public_repo`.
+- Если issue ещё не создан, первый GitHub-вход создаст общий поток автоматически.
+- Google/Yandex/демо входы оставлены для UI, но публиковать комментарии можно только через GitHub.
 
 ### Настройка реальной авторизации
 - Укажите client_id в `assets/js/script.js` → `OAUTH_CONFIG.githubClientId`, `OAUTH_CONFIG.googleClientId`, `OAUTH_CONFIG.yandexClientId`.
@@ -27,7 +28,7 @@
   1. Создайте OAuth App на https://github.com/settings/developers → New OAuth App.
   2. Callback URL: `https://<username>.github.io/<repo>/` (корень страницы).
   3. Скопируйте `Client ID` в `OAUTH_CONFIG.githubClientId`. Если GitHub требует client secret — сгенерируйте и вставьте в `githubClientSecret` (в `assets/js/script.js`).
-  4. На сайте жмите «GitHub (OAuth device flow)», откройте ссылку, введите выданный код, дождитесь авторизации.
+  4. На сайте жмите «GitHub (OAuth device flow)», откройте ссылку, введите выданный код, дождитесь авторизации. Device flow запрашивает `public_repo`, чтобы можно было создать issue и публиковать комментарии.
 - GitHub CORS: login/oauth эндпоинты не отдают CORS, поэтому в коде используется публичный прокси `https://cors.isomorphic-git.org/`. Для продакшена лучше заменить на свой прокси/серверлесс и хранить secret там.
 - Google OAuth (implicit):
   1. Создайте OAuth 2.0 Client ID (тип Web) в Google Cloud Console.

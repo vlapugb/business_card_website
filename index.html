@@ -207,17 +207,12 @@
           <p class="eyebrow">Обратная связь</p>
           <h2>Оставьте комментарий</h2>
         </div>
-        <p class="form__hint muted">Комментарии работают через GitHub Issues (требуется авторизация GitHub).</p>
-        <div class="comments__embed">
-          <script src="https://utteranc.es/client.js"
-            repo="vlapugb/business_card_website"
-            issue-term="pathname"
-            label="comment"
-            theme="github-dark"
-            crossorigin="anonymous"
-            async>
-          </script>
-        </div>
+        <p class="form__hint muted" id="commentsHint">Комментарии публикуются в GitHub Issues этого репозитория. Нужен вход через GitHub.</p>
+        <form class="comment__form" id="commentForm">
+          <textarea id="commentInput" placeholder="Авторизуйтесь через GitHub, чтобы оставить комментарий." required></textarea>
+          <button type="submit" class="button button--solid">Отправить</button>
+        </form>
+        <div class="comment__list" id="commentList"></div>
       </section>
     </main>
 
