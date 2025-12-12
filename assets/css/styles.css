@@ -276,21 +276,72 @@ h3 {
   margin-bottom: 10px;
 }
 
+.auth-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  position: sticky;
+  top: 12px;
+  z-index: 5;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(5, 11, 24, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+.auth--center {
+  text-align: center;
+}
+
 .auth__status {
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px dashed var(--border);
   background: rgba(255, 255, 255, 0.02);
+  min-width: 240px;
+  max-width: 320px;
+  margin-left: auto;
 }
 
 .auth__note {
   margin: 4px 0 10px 0;
   color: var(--muted);
   font-size: 14px;
+  text-align: center;
 }
 
 .auth__note--alert {
   color: var(--danger);
+}
+
+.auth-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: currentColor;
+}
+
+.auth-icon--google svg {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
+}
+
+.auth-icon--yandex {
+  color: #ffcc00;
+}
+
+.auth-icon--github {
+  color: #e8ecf5;
 }
 
 .auth__code {
@@ -301,6 +352,7 @@ h3 {
   display: grid;
   gap: 8px;
   margin: 0 0 12px 0;
+  text-align: left;
 }
 
 .auth__code-row {
@@ -429,6 +481,11 @@ textarea:focus {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.button--solidless {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .button--sm {
   padding: 6px 10px;
   font-size: 13px;
@@ -468,6 +525,17 @@ textarea:focus {
   .timeline__header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .auth-bar {
+    position: static;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .auth__status {
+    width: 100%;
+    max-width: none;
   }
 }
 
