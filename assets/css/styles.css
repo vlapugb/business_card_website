@@ -482,7 +482,7 @@ textarea:focus {
 
 .comment__form button[type="submit"] {
   width: fit-content;
-  min-width: 160px;
+  min-width: 120px;
   align-self: flex-start;
 }
 
