@@ -292,8 +292,18 @@ h3 {
   box-shadow: var(--shadow);
 }
 
+.auth-top {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .auth--center {
   text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .auth__status {
@@ -347,12 +357,13 @@ h3 {
 .auth__code {
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: rgba(98, 244, 166, 0.06);
   display: grid;
   gap: 8px;
-  margin: 0 0 12px 0;
+  margin: 8px auto 12px auto;
   text-align: left;
+  max-width: 520px;
 }
 
 .auth__code-row {
@@ -531,6 +542,10 @@ textarea:focus {
     position: static;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .auth-top {
+    justify-content: flex-start;
   }
 
   .auth__status {
