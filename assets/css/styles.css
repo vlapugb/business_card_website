@@ -55,9 +55,9 @@ body::after {
 }
 
 .page {
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 48px 22px 64px;
+  padding: 36px 18px 64px;
 }
 
 a {
@@ -180,8 +180,8 @@ h3 {
 
 .projects__list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
 }
 
 .project {
@@ -193,6 +193,7 @@ h3 {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  min-height: 140px;
 }
 
 .project__name {
@@ -207,6 +208,9 @@ h3 {
   background: rgba(255, 255, 255, 0.04);
   font-size: 13px;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .timeline {
@@ -457,6 +461,7 @@ h3 {
   display: grid;
   gap: 10px;
   margin-bottom: 14px;
+  align-items: flex-start;
 }
 
 textarea {
@@ -473,6 +478,12 @@ textarea {
 
 textarea:focus {
   outline: 2px solid rgba(98, 244, 166, 0.4);
+}
+
+.comment__form button[type="submit"] {
+  width: fit-content;
+  min-width: 160px;
+  align-self: flex-start;
 }
 
 .comment__list {
