@@ -8,7 +8,7 @@ const OAUTH_CONFIG = {
   githubClientId: "Ov23licLGRGeChpkP29C",
   // GitHub secret в фронт не кладём; device flow работает только с client_id.
   githubClientSecret: "",
-  vkClientId: "54396596",
+  googleClientId: "815683495320-jipk985qjf1q5sg0aqosrpk4lgo24gna.apps.googleusercontent.com",
   // Фиксируем redirect на путь GitHub Pages, чтобы совпадало с настройкой OAuth App.
   redirectUri: "https://vlapugb.github.io/business_card_website/",
 };
@@ -27,11 +27,11 @@ const demoProfiles = {
     link: "https://github.com/vlapugb",
     accent: "#6bb8ff",
   },
-  vk: {
-    name: "bystepgoing",
-    handle: "@vk/bystepgoing",
-    link: "https://vk.com/bystepgoing",
-    accent: "#4fe4ad",
+  google: {
+    name: "vlapugb",
+    handle: "@google/vlapugb",
+    link: "https://profiles.google.com/",
+    accent: "#fbbc05",
   },
 };
 
@@ -41,7 +41,7 @@ const state = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  handleVkRedirect();
+  handleGoogleRedirect();
   bindAuthButtons();
   renderAuthStatus();
   renderComments();
@@ -54,8 +54,8 @@ function bindAuthButtons() {
       const mode = button.dataset.auth;
       if (mode === "github-device") {
         startGitHubDeviceFlow();
-      } else if (mode === "vk-implicit") {
-        startVkImplicitFlow();
+      } else if (mode === "google-implicit") {
+        startGoogleImplicitFlow();
       } else if (mode === "demo") {
         handleDemoLogin();
       }
@@ -231,66 +231,60 @@ async function saveGitHubUser(accessToken) {
   persistUser(user);
 }
 
-// ---------------- VK OAuth (Implicit Flow) ----------------
-function startVkImplicitFlow() {
-  if (!OAUTH_CONFIG.vkClientId || OAUTH_CONFIG.vkClientId.startsWith("REPLACE")) {
-    setAuthNote("Укажите VK client_id в OAUTH_CONFIG.vkClientId.", true);
+// ---------------- Google OAuth (Implicit Flow) ----------------
+function startGoogleImplicitFlow() {
+  if (!OAUTH_CONFIG.googleClientId || OAUTH_CONFIG.googleClientId.startsWith("REPLACE")) {
+    setAuthNote("Укажите Google client_id в OAUTH_CONFIG.googleClientId.", true);
     return;
   }
 
   renderAuthCode("");
-  const url = new URL("https://oauth.vk.com/authorize");
-  url.searchParams.set("client_id", OAUTH_CONFIG.vkClientId);
-  url.searchParams.set("display", "page");
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.searchParams.set("client_id", OAUTH_CONFIG.googleClientId);
   url.searchParams.set("redirect_uri", OAUTH_CONFIG.redirectUri);
-  // Минимальный запрос без специальных прав, чтобы не ловить invalid_scope.
   url.searchParams.set("response_type", "token");
-  url.searchParams.set("v", "5.131");
+  url.searchParams.set("scope", "profile email");
+  url.searchParams.set("include_granted_scopes", "true");
+  url.searchParams.set("prompt", "consent");
   window.location.href = url.toString();
 }
 
-async function handleVkRedirect() {
+async function handleGoogleRedirect() {
   if (!window.location.hash.includes("access_token")) return;
 
   const params = new URLSearchParams(window.location.hash.slice(1));
   const token = params.get("access_token");
-  const userId = params.get("user_id");
-  if (!token || !userId) return;
+  if (!token) return;
 
   try {
     renderAuthCode("");
-    const user = await fetchVkUser(token, userId);
+    const user = await fetchGoogleUser(token);
     persistUser(user);
-    setAuthNote("VK: авторизация успешна.");
+    setAuthNote("Google: авторизация успешна.");
   } catch (err) {
     console.error(err);
-    setAuthNote("Не удалось получить данные VK.", true);
+    setAuthNote("Не удалось получить данные Google.", true);
   } finally {
     history.replaceState(null, document.title, window.location.pathname + window.location.search);
   }
 }
 
-async function fetchVkUser(token, userId) {
-  const url = new URL("https://api.vk.com/method/users.get");
-  url.searchParams.set("user_ids", userId);
-  url.searchParams.set("fields", "photo_100");
-  url.searchParams.set("access_token", token);
-  url.searchParams.set("v", "5.131");
-
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error("VK request failed");
+async function fetchGoogleUser(token) {
+  const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Google request failed");
   const data = await res.json();
-  if (data.error || !data.response || !data.response.length) {
-    throw new Error("VK returned error");
-  }
-  const profile = data.response[0];
+
   return {
-    name: `${profile.first_name} ${profile.last_name}`.trim(),
-    provider: "vk-oauth",
-    handle: `id${profile.id}`,
-    link: `https://vk.com/id${profile.id}`,
-    accent: "#4fe4ad",
-    avatar: profile.photo_100,
+    name: data.name || data.email || "Google User",
+    provider: "google-oauth",
+    handle: data.email ? data.email : data.id ? `id${data.id}` : "google-user",
+    link: data.link || "https://myaccount.google.com/",
+    accent: "#fbbc05",
+    avatar: data.picture,
     token,
   };
 }
@@ -299,7 +293,7 @@ async function fetchVkUser(token, userId) {
 function handleDemoLogin() {
   const name = prompt("Демо-вход: укажите имя", "Гость");
   if (!name) return;
-  const profile = demoProfiles.github;
+  const profile = demoProfiles.google;
   const user = {
     name: name.trim(),
     provider: "demo",
@@ -426,7 +420,7 @@ function bindCommentForm() {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!state.user) {
-      alert("Сначала войдите через GitHub или VK.");
+      alert("Сначала войдите через GitHub или Google.");
       return;
     }
 
@@ -514,8 +508,8 @@ function providerLabel(provider) {
   switch (provider) {
     case "github-oauth":
       return "GitHub OAuth";
-    case "vk-oauth":
-      return "VK OAuth";
+    case "google-oauth":
+      return "Google OAuth";
     case "demo":
       return "Demo";
     default:
