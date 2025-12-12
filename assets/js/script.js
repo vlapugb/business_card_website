@@ -243,7 +243,7 @@ function startVkImplicitFlow() {
   url.searchParams.set("client_id", OAUTH_CONFIG.vkClientId);
   url.searchParams.set("display", "page");
   url.searchParams.set("redirect_uri", OAUTH_CONFIG.redirectUri);
-  url.searchParams.set("scope", "offline");
+  // Минимальный запрос без специальных прав, чтобы не ловить invalid_scope.
   url.searchParams.set("response_type", "token");
   url.searchParams.set("v", "5.131");
   window.location.href = url.toString();
