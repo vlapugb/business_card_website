@@ -1,6 +1,5 @@
 const storageKeys = {
   user: "vc_user",
-  commentsIssue: "vc_comments_issue",
 };
 
 // Настройки OAuth: вставьте свои client_id
@@ -22,8 +21,12 @@ const GITHUB_PROXIES = [
   "https://corsproxy.io/?",
 ];
 
-const COMMENTS_REPO = "vlapugb/business_card_website";
-const COMMENTS_THREAD_TITLE = "Комментарии к бизнес-карте";
+// Глобальное хранилище комментариев (Supabase REST API).
+const SUPABASE_CONFIG = {
+  url: "https://axexawnoagsuknsquxfj.supabase.co",
+  anonKey: "sb_publishable_iC1Hejrn74QpxzFHT_Mrew_SzPqpq1g",
+  table: "comments",
+};
 
 const demoProfiles = {
   github: {
@@ -52,7 +55,6 @@ const state = {
 };
 
 const commentsState = {
-  issueNumber: loadIssueNumber(),
   loading: false,
   error: "",
 };
@@ -116,7 +118,7 @@ async function requestGitHubDeviceCode() {
     ...(OAUTH_CONFIG.githubClientSecret && !OAUTH_CONFIG.githubClientSecret.startsWith("REPLACE")
       ? { client_secret: OAUTH_CONFIG.githubClientSecret }
       : {}),
-    scope: "read:user public_repo",
+    scope: "read:user",
   });
   const res = await fetchViaProxy("https://github.com/login/device/code", payload);
   if (!res || res.error) {
@@ -502,28 +504,24 @@ async function fetchAndRenderComments() {
   commentsState.error = "";
   renderComments();
 
-  try {
-    const issueNumber = await ensureCommentsIssue(isGitHubUser());
-    if (!issueNumber) {
-      commentsState.error = "Авторизуйтесь через GitHub, чтобы создать общий поток комментариев.";
-      state.comments = [];
-      return;
-    }
+  if (!isSupabaseConfigured()) {
+    commentsState.loading = false;
+    commentsState.error = "Укажите Supabase URL и anon key, чтобы включить глобальные комментарии.";
+    renderComments();
+    renderFormState();
+    return;
+  }
 
-    const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues/${issueNumber}/comments`, {
-      headers: githubHeaders(),
+  try {
+    const headers = supabaseHeaders();
+    const res = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}?select=*&order=created_at.desc`, {
+      headers,
     });
     if (!res.ok) {
-      if (res.status === 404) {
-        commentsState.issueNumber = null;
-        saveIssueNumber(null);
-      }
-      throw new Error("Не удалось загрузить комментарии из GitHub Issues.");
+      throw new Error("Не удалось загрузить комментарии.");
     }
     const data = await res.json();
-    state.comments = data.map(mapGithubComment);
-    commentsState.issueNumber = issueNumber;
-    saveIssueNumber(issueNumber);
+    state.comments = data.map(mapSupabaseComment);
   } catch (err) {
     console.error(err);
     commentsState.error = err?.message || "Не удалось загрузить комментарии.";
@@ -545,8 +543,12 @@ function bindCommentForm() {
     const textarea = document.getElementById("commentInput");
     const message = textarea.value.trim();
     if (!message) return;
-    if (!isGitHubUser()) {
-      alert("Комментарии публикуются в GitHub Issues — войдите через GitHub (device flow).");
+    if (!state.user) {
+      alert("Авторизуйтесь, чтобы оставить комментарий.");
+      return;
+    }
+    if (!isSupabaseConfigured()) {
+      alert("Supabase не настроен. Укажите url и anon key в assets/js/script.js.");
       return;
     }
 
@@ -555,8 +557,7 @@ function bindCommentForm() {
     submit.disabled = true;
 
     try {
-      const issueNumber = await ensureCommentsIssue(true);
-      await postCommentToGitHub(issueNumber, message);
+      await postSupabaseComment(message);
       textarea.value = "";
       await fetchAndRenderComments();
     } catch (err) {
@@ -576,20 +577,25 @@ function renderFormState() {
   const hint = document.getElementById("commentsHint");
   if (!textarea || !submit) return;
 
-  const disabled = !isGitHubUser() || commentsState.loading;
+  const hasUser = Boolean(state.user);
+  const disabled = !hasUser || commentsState.loading || !isSupabaseConfigured();
   textarea.disabled = disabled;
   submit.disabled = disabled;
 
-  if (!isGitHubUser()) {
-    textarea.placeholder = "Чтобы оставить комментарий в GitHub Issues, авторизуйтесь через GitHub.";
-    if (hint) hint.textContent = "Для глобальных комментариев нужен вход через GitHub (device flow).";
+  if (!hasUser) {
+    textarea.placeholder = "Авторизуйтесь через GitHub/Google/Yandex, чтобы оставить комментарий.";
+    if (hint) hint.textContent = "Любая авторизация — комментарий уйдёт в общее хранилище (Supabase).";
+    return;
+  }
+
+  if (!isSupabaseConfigured()) {
+    textarea.placeholder = "Supabase не настроен: укажите url и anon key.";
+    if (hint) hint.textContent = "Укажите Supabase URL и anon key в assets/js/script.js → SUPABASE_CONFIG.";
     return;
   }
 
   if (commentsState.loading) {
-    textarea.placeholder = "Загружаем поток комментариев из GitHub…";
-  } else if (!commentsState.issueNumber && commentsState.error) {
-    textarea.placeholder = "Создадим issue после первого комментария.";
+    textarea.placeholder = "Загружаем поток комментариев…";
   } else {
     textarea.placeholder = "Что думаете о проектах или опыте?";
   }
@@ -614,7 +620,9 @@ function renderComments() {
     errorEl.className = "muted";
     errorEl.textContent = commentsState.error;
     list.appendChild(errorEl);
-    return;
+    if (!state.comments.length) {
+      return;
+    }
   }
 
   if (!state.comments.length) {
@@ -691,97 +699,66 @@ function timeAgo(timestamp) {
   return `${days} дн назад`;
 }
 
-async function ensureCommentsIssue(allowCreate = false) {
-  if (commentsState.issueNumber) return commentsState.issueNumber;
-
-  const existing = await findCommentsIssue();
-  if (existing) {
-    commentsState.issueNumber = existing;
-    saveIssueNumber(existing);
-    return existing;
-  }
-
-  if (!allowCreate || !isGitHubUser()) {
-    return null;
-  }
-
-  const created = await createCommentsIssue();
-  commentsState.issueNumber = created;
-  saveIssueNumber(created);
-  return created;
-}
-
-async function findCommentsIssue() {
-  if (commentsState.issueNumber) return commentsState.issueNumber;
-
-  const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues?state=all&per_page=100`, {
-    headers: githubHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error("Не удалось получить список issues для комментариев.");
-  }
-  const data = await res.json();
-  const existing = data.find((issue) => issue.title === COMMENTS_THREAD_TITLE);
-  return existing ? existing.number : null;
-}
-
-async function createCommentsIssue() {
-  const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues`, {
+async function postSupabaseComment(message) {
+  const headers = { ...supabaseHeaders(), "Content-Type": "application/json", Prefer: "return=representation" };
+  const payload = {
+    message,
+    provider: state.user.provider,
+    user_name: state.user.name,
+    user_handle: state.user.handle || "",
+    user_link: state.user.link || "",
+    user_avatar: state.user.avatar || null,
+    user_accent: state.user.accent || "#6bb8ff",
+    created_at: new Date().toISOString(),
+  };
+  const res = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}`, {
     method: "POST",
-    headers: { ...githubHeaders(true), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title: COMMENTS_THREAD_TITLE,
-      body: "Общий тред для комментариев к странице-визитке.",
-    }),
+    headers,
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new Error("Не удалось создать issue для комментариев (проверьте scope public_repo).");
+    throw new Error("Не удалось отправить комментарий (Supabase). Проверьте ключ и URL.");
   }
   const data = await res.json();
-  return data.number;
-}
-
-async function postCommentToGitHub(issueNumber, message) {
-  const res = await fetch(`https://api.github.com/repos/${COMMENTS_REPO}/issues/${issueNumber}/comments`, {
-    method: "POST",
-    headers: { ...githubHeaders(true), "Content-Type": "application/json" },
-    body: JSON.stringify({ body: message }),
-  });
-  if (!res.ok) {
-    throw new Error("GitHub не принял комментарий. Проверьте авторизацию и scope public_repo.");
+  if (Array.isArray(data) && data.length) {
+    return mapSupabaseComment(data[0]);
   }
-  const data = await res.json();
-  return mapGithubComment(data);
+  return null;
 }
 
-function mapGithubComment(comment) {
+function mapSupabaseComment(row) {
   return {
-    id: comment.id,
-    message: comment.body,
+    id: row.id || row.created_at,
+    message: row.message,
     user: {
-      name: comment.user.login,
-      provider: "github-issue",
-      handle: `@${comment.user.login}`,
-      link: comment.user.html_url,
-      accent: "#6bb8ff",
-      avatar: comment.user.avatar_url,
+      name: row.user_name,
+      provider: row.provider,
+      handle: row.user_handle,
+      link: row.user_link,
+      accent: row.user_accent || "#6bb8ff",
+      avatar: row.user_avatar,
     },
-    createdAt: comment.created_at,
+    createdAt: row.created_at,
   };
 }
 
-function githubHeaders(requireAuth = false) {
-  const headers = { Accept: "application/vnd.github+json" };
-  if (isGitHubUser()) {
-    headers.Authorization = `Bearer ${state.user.token}`;
-  } else if (requireAuth) {
-    throw new Error("Требуется вход через GitHub для работы с комментариями.");
+function supabaseHeaders() {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Укажите Supabase URL и anon key в SUPABASE_CONFIG.");
   }
-  return headers;
+  return {
+    apikey: SUPABASE_CONFIG.anonKey,
+    Authorization: `Bearer ${SUPABASE_CONFIG.anonKey}`,
+  };
 }
 
-function isGitHubUser() {
-  return Boolean(state.user && state.user.provider === "github-oauth" && state.user.token);
+function isSupabaseConfigured() {
+  return Boolean(
+    SUPABASE_CONFIG.url &&
+      SUPABASE_CONFIG.anonKey &&
+      !SUPABASE_CONFIG.url.includes("REPLACE") &&
+      !SUPABASE_CONFIG.anonKey.startsWith("REPLACE")
+  );
 }
 
 function redirectHomeAfterAuth() {
@@ -797,27 +774,5 @@ function loadUser() {
   } catch (e) {
     console.warn("Не удалось загрузить пользователя", e);
     return null;
-  }
-}
-
-function loadIssueNumber() {
-  try {
-    const raw = localStorage.getItem(storageKeys.commentsIssue);
-    const parsed = raw ? Number(raw) : null;
-    return Number.isFinite(parsed) ? parsed : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function saveIssueNumber(issueNumber) {
-  try {
-    if (!issueNumber) {
-      localStorage.removeItem(storageKeys.commentsIssue);
-      return;
-    }
-    localStorage.setItem(storageKeys.commentsIssue, String(issueNumber));
-  } catch (e) {
-    console.warn("Не удалось сохранить номер issue", e);
   }
 }

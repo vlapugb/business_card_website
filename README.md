@@ -1,6 +1,6 @@
 ## Сайт-визитка
 
-Статическая страница `index.html` с данными из резюме `pugovkin.pdf`. Внутри подключены GTM, Яндекс.Метрика, демо-вход через GitHub/Google/Yandex и глобальные комментарии в GitHub Issues.
+Статическая страница `index.html` с данными из резюме `pugovkin.pdf`. Внутри подключены GTM, Яндекс.Метрика, демо-вход через GitHub/Google/Yandex и глобальные комментарии через Supabase.
 
 ### Как посмотреть локально
 1. Откройте `index.html` в браузере напрямую, либо
@@ -9,7 +9,7 @@
 ### Структура
 - `index.html` — страница.
 - `assets/css/styles.css` — стили.
-- `assets/js/script.js` — логика демо-авторизации и комментариев (GitHub Issues).
+- `assets/js/script.js` — логика демо-авторизации и комментариев (Supabase).
 - `.github/workflows/deploy.yml` — автодеплой на GitHub Pages.
 - `.nojekyll` — отключение Jekyll на Pages.
 
@@ -18,9 +18,23 @@
 - Яндекс.Метрика подключена с ID `105796523`; при необходимости замените на свой.
 
 ### Социальный вход и комментарии
-- Комментарии публикуются в GitHub Issues репозитория (`assets/js/script.js` → `COMMENTS_REPO`). Нужен вход через GitHub (device flow), scope `read:user public_repo`.
-- Если issue ещё не создан, первый GitHub-вход создаст общий поток автоматически.
-- Google/Yandex/демо входы оставлены для UI, но публиковать комментарии можно только через GitHub.
+- Любая авторизация (GitHub/Google/Yandex/демо) позволяет отправить комментарий в общее хранилище Supabase.
+- Настройте Supabase в `assets/js/script.js` → `SUPABASE_CONFIG.url`, `SUPABASE_CONFIG.anonKey`, `SUPABASE_CONFIG.table`.
+- Минимальная схема таблицы `comments` (Postgres):  
+  ```sql
+  create table if not exists public.comments (
+    id uuid default gen_random_uuid() primary key,
+    message text not null,
+    provider text,
+    user_name text,
+    user_handle text,
+    user_link text,
+    user_avatar text,
+    user_accent text,
+    created_at timestamptz default now()
+  );
+  ```
+  Включите RLS и разрешите insert/select для роли `anon` (по необходимости).
 
 ### Настройка реальной авторизации
 - Укажите client_id в `assets/js/script.js` → `OAUTH_CONFIG.githubClientId`, `OAUTH_CONFIG.googleClientId`, `OAUTH_CONFIG.yandexClientId`.
@@ -28,7 +42,7 @@
   1. Создайте OAuth App на https://github.com/settings/developers → New OAuth App.
   2. Callback URL: `https://<username>.github.io/<repo>/` (корень страницы).
   3. Скопируйте `Client ID` в `OAUTH_CONFIG.githubClientId`. Если GitHub требует client secret — сгенерируйте и вставьте в `githubClientSecret` (в `assets/js/script.js`).
-  4. На сайте жмите «GitHub (OAuth device flow)», откройте ссылку, введите выданный код, дождитесь авторизации. Device flow запрашивает `public_repo`, чтобы можно было создать issue и публиковать комментарии.
+  4. На сайте жмите «GitHub (OAuth device flow)», откройте ссылку, введите выданный код, дождитесь авторизации.
 - GitHub CORS: login/oauth эндпоинты не отдают CORS, поэтому в коде используется публичный прокси `https://cors.isomorphic-git.org/`. Для продакшена лучше заменить на свой прокси/серверлесс и хранить secret там.
 - Google OAuth (implicit):
   1. Создайте OAuth 2.0 Client ID (тип Web) в Google Cloud Console.
