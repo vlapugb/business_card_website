@@ -6,10 +6,9 @@ const storageKeys = {
 // Настройки OAuth: вставьте свои client_id
 const OAUTH_CONFIG = {
   githubClientId: "Ov23licLGRGeChpkP29C",
-  // Для GitHub device flow client_secret не обязателен, но GitHub может его требовать для некоторых приложений.
-  // Если авторизация не проходит, создайте secret в настройках OAuth App и вставьте сюда.
-  githubClientSecret: "REPLACE_WITH_GITHUB_CLIENT_SECRET",
-  vkClientId: "REPLACE_WITH_VK_CLIENT_ID",
+  // GitHub secret в фронт не кладём; device flow работает только с client_id.
+  githubClientSecret: "",
+  vkClientId: "54396596",
   // Фиксируем redirect на путь GitHub Pages, чтобы совпадало с настройкой OAuth App.
   redirectUri: "https://vlapugb.github.io/business_card_website/",
 };
