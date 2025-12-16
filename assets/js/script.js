@@ -676,10 +676,6 @@ function providerLabel(provider) {
       return "Google OAuth";
     case "yandex-oauth":
       return "Yandex OAuth";
-    case "demo":
-      return "Demo";
-    case "github-issue":
-      return "GitHub";
     default:
       return "Соц. сеть";
   }
