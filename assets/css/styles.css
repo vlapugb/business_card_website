@@ -180,8 +180,8 @@ h3 {
 
 .projects__list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .project {
@@ -194,6 +194,10 @@ h3 {
   align-items: flex-start;
   gap: 10px;
   min-height: 160px;
+}
+
+.project .chip {
+  align-self: flex-start;
 }
 
 .project__name {
@@ -617,6 +621,18 @@ textarea:focus {
   .auth__status {
     width: 100%;
     max-width: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .projects__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .projects__list {
+    grid-template-columns: 1fr;
   }
 }
 
