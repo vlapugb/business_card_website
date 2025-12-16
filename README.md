@@ -75,5 +75,4 @@
 - ФИО: Владимир Пуговкин
 - GitHub: https://github.com/vlapugb
 - Telegram: https://t.me/bystepgoing
-- Telegram: https://t.me/bystepgoing
 - Телефон: +7 993-939-42-09
