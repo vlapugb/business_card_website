@@ -178,6 +178,16 @@ h3 {
   margin-top: 12px;
 }
 
+.skill-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skill-badge {
+  height: 26px;
+}
+
 .projects__list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
